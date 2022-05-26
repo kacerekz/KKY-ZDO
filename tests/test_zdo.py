@@ -56,8 +56,8 @@ def test_run_all():
 
     # Nastavte si v operačním systém proměnnou prostředí 'ZDO_DATA_PATH' s cestou k datasetu.
     # Pokud není nastavena, využívá se testovací dataset tests/test_dataset
-    dataset_path = os.getenv('ZDO_DATA_PATH_', default=Path(__file__).parent / 'test_dataset/')
-    # dataset_path = Path(r"H:\biology\orig\zdo_varroa_detection_coco_001")
+    # dataset_path = os.getenv('ZDO_DATA_PATH_', default=Path(__file__).parent / 'test_dataset/')
+    dataset_path = Path("D:/Data/ZDO")
 
     # print(f'dataset_path = {dataset_path}')
     types = ('*.MP4', '*.mkv')  # the tuple of file types

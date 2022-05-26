@@ -5,3 +5,6 @@ scikit-learn
 matplotlib
 pandas
 lxml
+pytest
+seaborn
+cv2
