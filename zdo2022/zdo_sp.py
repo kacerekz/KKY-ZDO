@@ -1,3 +1,4 @@
+import json
 import sys
 import os.path
 import cv2 as cv
@@ -7,9 +8,11 @@ import skimage.color
 import matplotlib.pyplot as plt
 import math
 from os import path
+
 from skimage.transform import (hough_line, hough_line_peaks)
 from podpurne_funkce import (GetImageFiles, GetFrame)
 from filtering import (Filter, FilterKmeans)
+from pathlib import Path
 
 # Mark object at position in frame - cross
 # Returns edited frame 
@@ -311,7 +314,15 @@ def ProcessFrame(mask, frame, filtering):
     return positions2
 
 # Process video using the MOG operator, interpolates between positions in frames and outputs a video
-def ProcessVideo2(imageDir, imageFiles, filtering, interpolation, outpath):    
+def ProcessVideo2(imageDir, imageFiles, filtering, interpolation, outpath): 
+
+    filenames = []
+    object_ids = []
+    frame_ids = []
+    x_px = []
+    y_px = []
+    pth = Path(imageDir)
+
     print("Starting processing...")
     positions = []
     height, width, layers = (0,0,0)
@@ -354,11 +365,33 @@ def ProcessVideo2(imageDir, imageFiles, filtering, interpolation, outpath):
         frameIndex = positions[i][0] # i
         filename = imageDir + imageFiles[frameIndex]
         [frame, mask] = GetFrame(filename, kernel, subtractor)
-        
+
+        for j in range(0, (int)(len(positions[i][1])/2)):
+            x = (int)(positions[i][1][j*2 + 0])
+            y = (int)(positions[i][1][j*2 + 1])
+
+            filenames.append(pth.parts[-2])
+            object_ids.append(0)
+            frame_ids.append(frameIndex)
+            x_px.append(y * 4)
+            y_px.append(x * 4)
+
         outimg = MarkObjects2(frame, positions[i])
         out.write(outimg)
     
     out.release()
+
+    annotation={
+        "filename": filenames,
+        "frame_id": frame_ids,
+        "object_id": object_ids,
+        "x_px": x_px,
+        "y_px": y_px,
+        "annotation_timestamp": [],
+    }
+
+    with open("results/out.json", "w") as output:
+        json.dump(annotation, output, indent = 4)
 
 def predict1(dir, filtering, interpolation):
     if dir[-1] != "/":
@@ -390,10 +423,11 @@ def predict1(dir, filtering, interpolation):
 
 def main():
 
-    dir = sys.argv[1];
+    dir = sys.argv[1]
 
     # 1 - default, 2 - kmeans
     filtering = int(sys.argv[2])
+
     # 1 - default, 2 - no interpolation 
     interpolation = int(sys.argv[3])
 

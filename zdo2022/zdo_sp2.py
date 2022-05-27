@@ -1,19 +1,19 @@
 from __future__ import annotations
-from configparser import RawConfigParser
-from itertools import accumulate
-import random
 from podpurne_funkce import GetImageFiles
 from podpurne_funkce import ScaleImage
 from skimage.transform import (probabilistic_hough_line, hough_circle)
 from skimage.feature import peak_local_max
 from skimage.draw import circle_perimeter
+from pathlib import Path
 from os import path
 
+import skimage.morphology
 import numpy as np
 import cv2 as cv
 import os.path
-import skimage.morphology
-
+import random
+import json
+import sys
 
 class InstrumentTracker2():
     def __init__(self):
@@ -38,7 +38,7 @@ class InstrumentTracker2():
             "annotation_timestamp": annotation_timestamp,
         }
 
-        print(annotation)
+        #print(annotation)
 
         return annotation
 
@@ -57,12 +57,17 @@ class InstrumentTracker2():
         object_id = []
         x_px = []
         y_px = []
-
-        filename.append(video_dirname)
+        pth = Path(video_dirname)
 
         image_files = GetImageFiles(video_dirname + "/images")
         #print(image_files)
 
+        image_filename = video_dirname + "/images/" + image_files[0]
+        frame = cv.imread(image_filename)
+        frame = ScaleImage(frame, 0.25)
+        height, width, layers = frame.shape
+        size = (width,height)
+        out = cv.VideoWriter("results/out2.avi", cv.VideoWriter_fourcc(*'DIVX'), 1, size)
 
         for i in range(0, len(image_files),1 ):
             image_filename = video_dirname + "/images/" + image_files[i]
@@ -124,6 +129,17 @@ class InstrumentTracker2():
                 
                 radius = radii[idx]
                 cx, cy = circle_perimeter(center_y, center_x, radius)
+                
+                oob = cx >= 0
+                cx *= oob
+                oob = cx < frame.shape[1]
+                cx *= oob
+
+                oob = cy >= 0
+                cy *= oob
+                oob = cy < frame.shape[0]
+                cy *= oob
+
                 hsv_frame[cy, cx] = (255, 0, 0)
                 
                 best_centers.append(center_x)
@@ -168,10 +184,10 @@ class InstrumentTracker2():
                     l = np.linalg.norm(dir)
                     rr = random.uniform(-0.05, 0.05)
                     dir /= l
-                    if (rr > 0):
-                        dir *= -1
-                    rx = random.uniform(-0.05, 0.05)
-                    ry = random.uniform(-0.05, 0.05)
+                    #if (rr > 0):
+                    #    dir *= -1
+                    rx = random.uniform(-0.1, 0.1)
+                    ry = random.uniform(-0.1, 0.1)
                     dir[0] += rx
                     dir[1] += ry
                     l = np.linalg.norm(dir)
@@ -180,11 +196,18 @@ class InstrumentTracker2():
                     was_red = False
 
                     while (ball_health[ball] > 0):
+                        ball_health[ball] -= 1
                         b_x += dir[0]
                         b_y += dir[1]
 
                         iy = int(b_y)
                         ix = int(b_x)
+
+                        ix = max(0, ix)
+                        iy = max(0, iy)
+
+                        ix = min(frame.shape[1]-1, ix)
+                        iy = min(frame.shape[0]-1, iy)
 
                         if hsv_image[iy][ix][0] < 15 or hsv_image[iy][ix][0] > 345:
                             was_red = True
@@ -218,21 +241,30 @@ class InstrumentTracker2():
                             b_x -= dir[0]
                             b_y -= dir[0]
 
-                        
-                    cv.circle(img=frame, center = (ix, iy), radius = 3, color = (0, 0, 0), thickness=-1)
+                    filename.append(pth.parts[-1])
+                    frame_id.append(i)
+                    object_id.append(0)
+                    x_px.append(ix * 4)
+                    y_px.append(iy * 4)
 
-            cv.imshow('frame', hsv_frame)
+                    cv.circle(img=frame, center = (ix, iy), radius = 3, color = (0, ball_health[ball], 0), thickness=-1)
+
+            #cv.imshow('frame', hsv_frame)
             #cv.imwrite("results/" + ("%06d.PNG" % i), hsv_frame)
-            k = cv.waitKey(30) & 0xff
+            #k = cv.waitKey(30) & 0xff
+            out.write(frame)
+            print("Writing frame " + str(i))
 
         cv.destroyAllWindows()
 
-        annotation_timestamp = [None] * len(filename)
+        annotation_timestamp = []
 
-        return self.create_annotation_output(filename, frame_id, object_id, x_px, y_px, annotation_timestamp)
+        annotation = self.create_annotation_output(filename, frame_id, object_id, x_px, y_px, annotation_timestamp)
+        with open("results/out2.json", "w") as output:
+            json.dump(annotation, output, indent = 4)
 
 def main():
-    video_dirname = "D:/Data/ZDO/224"
+    video_dirname = sys.argv[1]
     tracker = InstrumentTracker2()
     tracker.predict(video_dirname)
 
