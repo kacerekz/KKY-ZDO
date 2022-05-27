@@ -1,3 +1,4 @@
+import sys
 import os.path
 import cv2 as cv
 import numpy as np
@@ -359,7 +360,7 @@ def ProcessVideo2(imageDir, imageFiles, filtering, interpolation, outpath):
     
     out.release()
 
-def predict1(dir):
+def predict1(dir, filtering, interpolation):
     if dir[-1] != "/":
         dir += "/"
 
@@ -370,19 +371,14 @@ def predict1(dir):
     annotationFile = dir + "annotations.xml"
     outpath = "results/out.avi"
 
-    # 1 - default, 2 - kmeans
-    filtering = 1
-    # 1 - default, 2 - no interpolation 
-    interpolation = 1
+    #if not path.isdir(outDir):
+        #os.mkdir(outDir)
 
-    if not path.isdir(outDir):
-        os.mkdir(outDir)
+    #if not path.isdir(maskDir):
+        #os.mkdir(maskDir)
 
-    if not path.isdir(maskDir):
-        os.mkdir(maskDir)
-
-    if not path.isdir(frameDir):
-        os.mkdir(frameDir)
+    #if not path.isdir(frameDir):
+        #os.mkdir(frameDir)
 
     if not path.isdir("results"):
         os.mkdir("results")
@@ -393,7 +389,15 @@ def predict1(dir):
     ProcessVideo2(imageDir, imageFiles, filtering, interpolation, outpath)
 
 def main():
-    predict1("D:/Data/ZDO/224-min");
+
+    dir = sys.argv[1];
+
+    # 1 - default, 2 - kmeans
+    filtering = int(sys.argv[2])
+    # 1 - default, 2 - no interpolation 
+    interpolation = int(sys.argv[3])
+
+    predict1(dir, filtering, interpolation);
 
 if __name__ == "__main__":
     main()
