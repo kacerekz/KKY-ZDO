@@ -5,7 +5,7 @@ import skimage
 import skimage.color
 import numpy as np
 
-def get_annotation(filename):
+def GetAnnotation(filename):
     annotation={
         "filename": [], # pth.parts[-1]
         "frame_id": [],
@@ -32,7 +32,7 @@ def get_annotation(filename):
     
     return annotation
 
-def get_image_files(dir):
+def GetImageFiles(dir):
     imageFiles = []
 
     for file in os.listdir(dir):
@@ -41,8 +41,18 @@ def get_image_files(dir):
 
     return imageFiles
 
-def scale_image(image, scale):
+def ScaleImage(image, scale):
     width = int(image.shape[1] * scale)
     height = int(image.shape[0] * scale)
     dim = (width, height)
     return cv.resize(image, dim, interpolation = cv.INTER_CUBIC)
+
+def GetFrame(imageFile, kernel, subtractor):
+    frame = cv.imread(imageFile)
+    frame = ScaleImage(frame, 0.25)
+
+    # Find moving objects in image -> returns a mask
+    mask = subtractor.apply(frame)
+    mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+
+    return frame, mask

@@ -1,23 +1,22 @@
-import pytest
-import os
-import skimage.io
+from lxml import etree
+from pathlib import Path
 from typing import Optional
 from skimage.draw import polygon
+import os
 import glob
-import numpy as np
-from pathlib import Path
-import sklearn.metrics
-import pandas as pd
-from pathlib import Path
 import lxml
-from lxml import etree
+import pytest
+import skimage.io
+import numpy as np
+import pandas as pd
+import sklearn.metrics
 
-import zdo2022.main
+import zdo2022.zdo_sp2
 # cd ZDO2022
 # python -m pytest
 
 def test_run_random():
-    vdd = zdo2022.main.InstrumentTracker()
+    vdd = zdo2022.zdo_sp2.InstrumentTracker()
 
     # Nastavte si v operačním systém proměnnou prostředí 'ZDO_DATA_PATH' s cestou k datasetu.
     # Pokud není nastavena, využívá se testovací dataset tests/test_dataset
@@ -52,7 +51,7 @@ def test_run_random():
         plt.show()
 
 def test_run_all():
-    vdd = zdo2022.main.InstrumentTracker()
+    vdd = zdo2022.zdo_sp2.InstrumentTracker()
 
     # Nastavte si v operačním systém proměnnou prostředí 'ZDO_DATA_PATH' s cestou k datasetu.
     # Pokud není nastavena, využívá se testovací dataset tests/test_dataset
@@ -122,7 +121,6 @@ def xml_to_dict(pth:Path):
             annotation["annotation_timestamp"].append(updated)
 
     return annotation
-
 
 def interpolate_px(df_algorithm:pd.DataFrame, n_frames:Optional[int]=None, n_objects:Optional[int]=None, order:int=1) -> pd.DataFrame:
     if n_frames:
