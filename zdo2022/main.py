@@ -390,36 +390,41 @@ def ProcessVideo2(imageDir, imageFiles, filtering, interpolation, outpath):
         "annotation_timestamp": [],
     }
 
-    with open("results/out.json", "w") as output:
-        json.dump(annotation, output, indent = 4)
+    return annotation
 
-def predict1(dir, filtering, interpolation):
-    if dir[-1] != "/":
-        dir += "/"
+class InstrumentTracker():
+    def predict(self, dir, filtering, interpolation):
+        if dir[-1] != "/":
+            dir += "/"
 
-    outDir = dir + "processed/"
-    maskDir = outDir + "masks/"
-    frameDir = outDir + "frames/"
-    imageDir = dir + "images/"
-    annotationFile = dir + "annotations.xml"
-    outpath = "results/out.avi"
+        outDir = dir + "processed/"
+        maskDir = outDir + "masks/"
+        frameDir = outDir + "frames/"
+        imageDir = dir + "images/"
+        annotationFile = dir + "annotations.xml"
+        outpath = "results/out.avi"
 
-    #if not path.isdir(outDir):
-        #os.mkdir(outDir)
+        #if not path.isdir(outDir):
+            #os.mkdir(outDir)
 
-    #if not path.isdir(maskDir):
-        #os.mkdir(maskDir)
+        #if not path.isdir(maskDir):
+            #os.mkdir(maskDir)
 
-    #if not path.isdir(frameDir):
-        #os.mkdir(frameDir)
+        #if not path.isdir(frameDir):
+            #os.mkdir(frameDir)
 
-    if not path.isdir("results"):
-        os.mkdir("results")
+        if not path.isdir("results"):
+            os.mkdir("results")
 
-    # Load file names
-    imageFiles = GetImageFiles(imageDir)
-    # Process files as video frames
-    ProcessVideo2(imageDir, imageFiles, filtering, interpolation, outpath)
+        # Load file names
+        imageFiles = GetImageFiles(imageDir)
+        # Process files as video frames
+        annotation = ProcessVideo2(imageDir, imageFiles, filtering, interpolation, outpath)
+        
+        with open("results/out.json", "w") as output:
+            json.dump(annotation, output, indent = 4)
+
+        return annotation
 
 def main():
 
@@ -431,7 +436,7 @@ def main():
     # 1 - default, 2 - no interpolation 
     interpolation = int(sys.argv[3])
 
-    predict1(dir, filtering, interpolation);
+    InstrumentTracker().predict(dir, filtering, interpolation);
 
 if __name__ == "__main__":
     main()
