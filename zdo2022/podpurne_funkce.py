@@ -56,3 +56,10 @@ def GetFrame(imageFile, kernel, subtractor):
     mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
 
     return frame, mask
+
+# Logarithmic distance from one color to the other
+def DistanceFromColor(color1, color2):
+    c1_hsv = skimage.color.rgb2hsv(color1.reshape(1,1,3))
+    c2_hsv = skimage.color.rgb2hsv(color2.reshape(1,1,3))
+    dist = np.linalg.norm(c1_hsv - c2_hsv)
+    return dist
