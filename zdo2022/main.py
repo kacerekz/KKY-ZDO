@@ -10,9 +10,9 @@ import math
 from os import path
 
 from skimage.transform import (hough_line, hough_line_peaks)
-from podpurne_funkce import (ScaleImage, DistanceFromColor)
-from interpolation import (InterpolatePositions, InterpolationPadding)
-from filtering import (Filter, FilterKmeans)
+from zdo2022.podpurne_funkce import (ScaleImage, DistanceFromColor)
+from zdo2022.interpolation import (InterpolatePositions, InterpolationPadding)
+from zdo2022.filtering import (Filter, FilterKmeans)
 from pathlib import Path
 
 # Find moving objects in image -> returns a mask
@@ -220,10 +220,19 @@ def Process(path):
     positionsK = []
     positions = []
 
+    filename = []
+    frame_id = []
+    x_px = []
+    y_px = []
+    annotation_timestamp = []
+
     height = 0
     width = 0
     scale = 0.25
     skip = 25
+    mul = 1/scale
+    
+    pth = Path(path)
     
     # Kernel and operator
     # kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, (3,3))
@@ -239,6 +248,7 @@ def Process(path):
     # Get frame count
     frameCount = int(videoReader.get(cv.CAP_PROP_FRAME_COUNT))
     print("Frame count: ", frameCount)
+    frameCount = 75
 
     # Start reading frames from the video
     for i in range(0, frameCount):
@@ -307,6 +317,17 @@ def Process(path):
 
         # Write output image        
         videoWriter.write(outimg)
+
+        # Append data for each position
+        for i in range(0, (int)(len(positionsK[i][1])/2)):
+            
+            x = (int)(positionsK[i][1][i*2 + 0])
+            y = (int)(positionsK[i][1][i*2 + 1])
+            
+            filename.append(pth.parts[-1])
+            frame_id.append(i)
+            x_px.append(x * mul)
+            y_px.append(y * mul)
     
     # Release video reader and video writer
     videoReader.release()
@@ -315,15 +336,25 @@ def Process(path):
     #cv.destroyAllWindows()
     print("Done.")
 
+    annotation={
+        "filename": filename,
+        "frame_id": frame_id,
+        "object_id": ids,
+        "x_px": x_px,
+        "y_px": y_px,
+        "annotation_timestamp": annotation_timestamp,
+    }
+
+    return annotation
+
 class InstrumentTracker():
     def predict(self, path):
-        Process(path)
-        #annotation = 
+        annotation = Process(path)
         
-        #with open("results/out.json", "w") as output:
-        #    json.dump(annotation, output, indent = 4)
+        with open("results/out.json", "w") as output:
+            json.dump(annotation, output, indent = 4)
 
-        #return annotation
+        return annotation
 
 def main():
     #print(skimage.__version__)
