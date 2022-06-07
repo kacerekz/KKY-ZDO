@@ -11,7 +11,7 @@ from os import path
 
 from skimage.transform import (hough_line, hough_line_peaks)
 from zdo2022.podpurne_funkce import (ScaleImage, DistanceFromColor)
-from zdo2022.interpolation import (InterpolatePositions, InterpolationPadding)
+from zdo2022.interpolation import (InterpolatePositions, InterpolatePositionsK, InterpolationPadding)
 from zdo2022.filtering import (Filter, FilterKmeans)
 from pathlib import Path
 
@@ -120,8 +120,7 @@ def DetectSurroundings(frame, pos, h):
         res = True
     return res    
 
-# TODO I'm untested and very trivial
-# TODO output in the annotations format
+
 def AssignIDs(positionsK, width, height):
     # the one most centered - needleholder -> 0?
     # the one most on top - scissors -> 1?
@@ -289,7 +288,7 @@ def Process(path):
 
     # Interpolate missing positions
     positions = InterpolatePositions(positions)
-    positionsK = InterpolationPadding(positionsK)
+    positionsK = InterpolatePositionsK(positionsK)
 
     # Output
     size = (width,height)
