@@ -1,19 +1,18 @@
+import os
 import json
-import sys
-import os.path
 import cv2 as cv
 import numpy as np
 import skimage
 import skimage.color
-import matplotlib.pyplot as plt
+import skimage.feature
 import math
-from os import path
 
-from skimage.transform import (hough_line, hough_line_peaks)
-from zdo2022.podpurne_funkce import (ScaleImage, DistanceFromColor)
-from zdo2022.interpolation import (InterpolatePositions, InterpolatePositionsK, InterpolationPadding)
-from zdo2022.filtering import (Filter, FilterKmeans)
 from pathlib import Path
+from skimage.transform import (hough_line, hough_line_peaks)
+
+from . import podpurne_funkce
+from . import interpolation
+from . import filtering
 
 # Find moving objects in image -> returns a mask
 def GetMask(frame, kernel, subtractor):
@@ -106,8 +105,8 @@ def DetectSurroundings(frame, pos, h):
             if ((pos[1] + j < 0) or (pos[1] + j >= width)):
                 continue
 
-            dist = DistanceFromColor(frame[pos[0] + i, pos[1] + j], np.array([0.1, 0.1, 0.5]))
-            distOrange = DistanceFromColor(frame[pos[0] + i, pos[1] + j], np.array([0.2, 0.5, 0.8]))
+            dist = podpurne_funkce.DistanceFromColor(frame[pos[0] + i, pos[1] + j], np.array([0.1, 0.1, 0.5]))
+            distOrange = podpurne_funkce.DistanceFromColor(frame[pos[0] + i, pos[1] + j], np.array([0.2, 0.5, 0.8]))
 
             if (dist <= 0.4):
                 count += 2
@@ -189,7 +188,7 @@ def ProcessFrame(frame):
             x = coords[c][0]
             y = coords[c][1]
 
-            dist = DistanceFromColor(frame[x, y], np.array([0.1, 0.1, 0.5]))
+            dist = podpurne_funkce.DistanceFromColor(frame[x, y], np.array([0.1, 0.1, 0.5]))
             if (dist <= 0.4):
                 if (DetectSurroundings(frame, [x, y], 1)):
                     if (positions[0] == -1):
@@ -197,10 +196,10 @@ def ProcessFrame(frame):
                     positions.append(x)
                     positions.append(y)
 
-    positions2 = Filter(positions)
+    positions2 = filtering.Filter(positions)
     positionsK = positions
     if (len(positions) >= 3):
-        positionsK = FilterKmeans(positions)
+        positionsK = filtering.FilterKmeans(positions)
 
     # Print number of found tools
     print("Found tools: ", (int)(len(positions2)/2))
@@ -214,7 +213,6 @@ def ProcessFrame(frame):
 
 # Process video using the MOG operator, interpolates between positions in frames and outputs a video
 def Process(path):
-
     # Initialize variables
     positionsK = []
     positions = []
@@ -247,7 +245,6 @@ def Process(path):
     # Get frame count
     frameCount = int(videoReader.get(cv.CAP_PROP_FRAME_COUNT))
     print("Frame count: ", frameCount)
-    frameCount = 75
 
     # Start reading frames from the video
     for i in range(0, frameCount):
@@ -265,7 +262,7 @@ def Process(path):
             return
 
         # Scale the frame down
-        frame = ScaleImage(frame, scale)
+        frame = podpurne_funkce.ScaleImage(frame, scale)
 
         # Save frame shape
         height, width, _ = frame.shape
@@ -287,8 +284,8 @@ def Process(path):
     videoReader.release()
 
     # Interpolate missing positions
-    positions = InterpolatePositions(positions)
-    positionsK = InterpolatePositionsK(positionsK)
+    positions = interpolation.InterpolatePositions(positions)
+    positionsK = interpolation.InterpolatePositionsK(positionsK)
 
     # Output
     size = (width,height)
@@ -308,7 +305,7 @@ def Process(path):
         _, frame = videoReader.read()
         
         # Scale the frame down
-        frame = ScaleImage(frame, scale)
+        frame = podpurne_funkce.ScaleImage(frame, scale)
         
         # Mark the tool positions
         outimg = MarkObjects(frame, positions[i], (0, 0, 0))
@@ -327,6 +324,7 @@ def Process(path):
             frame_id.append(i)
             x_px.append(x * mul)
             y_px.append(y * mul)
+            annotation_timestamp.append(0)
     
     # Release video reader and video writer
     videoReader.release()
@@ -347,7 +345,14 @@ def Process(path):
     return annotation
 
 class InstrumentTracker():
+    def __init__(self):
+        pass
+
     def predict(self, path):
+        outDir = "results/"
+        if not os.path.isdir(outDir):
+            os.mkdir(outDir)
+
         annotation = Process(path)
         
         with open("results/out.json", "w") as output:
@@ -356,7 +361,6 @@ class InstrumentTracker():
         return annotation
 
 def main():
-    #print(skimage.__version__)
     InstrumentTracker().predict("9.mp4")
 
 if __name__ == "__main__":
