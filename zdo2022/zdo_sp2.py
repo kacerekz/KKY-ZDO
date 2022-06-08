@@ -1,19 +1,17 @@
-from __future__ import annotations
-from podpurne_funkce import GetImageFiles
-from podpurne_funkce import ScaleImage
+import skimage.morphology
+import numpy as np
+import cv2 as cv
+import random
+import json
+import sys
+import os
+
 from skimage.transform import (probabilistic_hough_line, hough_circle)
 from skimage.feature import peak_local_max
 from skimage.draw import circle_perimeter
 from pathlib import Path
-from os import path
 
-import skimage.morphology
-import numpy as np
-import cv2 as cv
-import os.path
-import random
-import json
-import sys
+import podpurne_funkce
 
 class InstrumentTracker2():
     def __init__(self):
@@ -38,47 +36,49 @@ class InstrumentTracker2():
             "annotation_timestamp": annotation_timestamp,
         }
 
-        #print(annotation)
-
         return annotation
 
-    def predict(self, video_dirname):
+    def predict(self, path):
         """
         :param video_dirname: name of the directory containing the .png files the video consists of
         :return: annnotations
         """
-
-        outDir = "results/"
-        if not path.isdir(outDir):
-            os.mkdir(outDir)
+        scale = 0.25
 
         filename = []
         frame_id = []
         object_id = []
         x_px = []
         y_px = []
-        pth = Path(video_dirname)
+        annotation_timestamp = []
 
-        image_files = GetImageFiles(video_dirname + "/images")
-        #print(image_files)
+        pth = Path(path)
 
-        image_filename = video_dirname + "/images/" + image_files[0]
-        frame = cv.imread(image_filename)
-        frame = ScaleImage(frame, 0.25)
-        height, width, layers = frame.shape
-        size = (width,height)
-        out = cv.VideoWriter("results/out2.avi", cv.VideoWriter_fourcc(*'DIVX'), 1, size)
+        # Create video reader
+        videoReader = cv.VideoCapture(path)
 
-        for i in range(0, len(image_files),1 ):
-            image_filename = video_dirname + "/images/" + image_files[i]
-            frame = cv.imread(image_filename)
-            frame = ScaleImage(frame, 0.25)
+        if not videoReader.isOpened():
+            print("Error opening the video file.")
+            return
 
-            #image_filename = video_dirname + "/images/" + image_files[i+1]
-            #frame2 = cv.imread(image_filename)
-            #frame2 = scale_image(frame2, 0.25)
+        # Get frame count
+        frameCount = int(videoReader.get(cv.CAP_PROP_FRAME_COUNT))
+        width = int(videoReader.get(cv.CAP_PROP_FRAME_WIDTH) * scale)
+        height = int(videoReader.get(cv.CAP_PROP_FRAME_HEIGHT) * scale)
+        size = (width, height)
 
-            #frame = cv.addWeighted(frame, 0.5, frame2, 0.5, 0.0)
+        print("Frame count: ", frameCount)
+
+        videoWriter = cv.VideoWriter("results/out2.avi", cv.VideoWriter_fourcc(*'DIVX'), 25, size);
+        
+        # Start reading frames from the video
+        for i in range(0, frameCount):
+            
+            # Read a frame
+            _, frame = videoReader.read()
+            
+            # Scale the frame down
+            frame = podpurne_funkce.ScaleImage(frame, scale)
             
             hsv_image = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
             hsv_frame = cv.cvtColor(frame, cv.COLOR_BGR2HSV)
@@ -147,10 +147,10 @@ class InstrumentTracker2():
 
             #ball_positions = []
             #healths = []
-            max_sat = 80;
+            max_sat = 80
 
             for line in lines:
-                ball_count = 10
+                ball_count = 1
                 ball_health = np.zeros(ball_count)
                 ball_health[:] = 500
 
@@ -181,15 +181,6 @@ class InstrumentTracker2():
                     b_y = b[1]
 
                     dir = (b[0] - a[0], b[1] - a[1])
-                    l = np.linalg.norm(dir)
-                    rr = random.uniform(-0.05, 0.05)
-                    dir /= l
-                    #if (rr > 0):
-                    #    dir *= -1
-                    rx = random.uniform(-0.1, 0.1)
-                    ry = random.uniform(-0.1, 0.1)
-                    dir[0] += rx
-                    dir[1] += ry
                     l = np.linalg.norm(dir)
                     dir /= l
 
@@ -246,27 +237,34 @@ class InstrumentTracker2():
                     object_id.append(0)
                     x_px.append(ix * 4)
                     y_px.append(iy * 4)
+                    annotation_timestamp.append(0)
 
                     cv.circle(img=frame, center = (ix, iy), radius = 3, color = (0, ball_health[ball], 0), thickness=-1)
 
             #cv.imshow('frame', hsv_frame)
             #cv.imwrite("results/" + ("%06d.PNG" % i), hsv_frame)
             #k = cv.waitKey(30) & 0xff
-            out.write(frame)
+            videoWriter.write(frame)
             print("Writing frame " + str(i))
 
+        # Release video reader
+        videoReader.release()
+        videoWriter.release()
         cv.destroyAllWindows()
 
-        annotation_timestamp = []
-
         annotation = self.create_annotation_output(filename, frame_id, object_id, x_px, y_px, annotation_timestamp)
+        
         with open("results/out2.json", "w") as output:
             json.dump(annotation, output, indent = 4)
 
 def main():
-    video_dirname = sys.argv[1]
+    outDir = "results/"
+    if not os.path.isdir(outDir):
+        os.mkdir(outDir)
+
+    path = sys.argv[1]
     tracker = InstrumentTracker2()
-    tracker.predict(video_dirname)
+    tracker.predict(path)
 
 if __name__ == "__main__":
     main()

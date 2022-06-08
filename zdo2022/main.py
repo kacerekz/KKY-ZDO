@@ -1,11 +1,12 @@
 import os
+import sys
+import math
 import json
 import cv2 as cv
 import numpy as np
 import skimage
 import skimage.color
 import skimage.feature
-import math
 
 from pathlib import Path
 from skimage.transform import (hough_line, hough_line_peaks)
@@ -289,7 +290,8 @@ def Process(path):
 
     # Output
     size = (width,height)
-    videoWriter = cv.VideoWriter("results/out.avi", cv.VideoWriter_fourcc(*'DIVX'), 25, size)
+    outfile = "results/out-"+ pth.parts[-1]
+    videoWriter = cv.VideoWriter(outfile  + ".avi", cv.VideoWriter_fourcc(*'DIVX'), 25, size)
     
     # Ids are returned in the order they appear in the positionsK list
     ids = AssignIDs(positionsK, width, height) 
@@ -342,6 +344,9 @@ def Process(path):
         "annotation_timestamp": annotation_timestamp,
     }
 
+    with open(outfile + ".json", "w") as output:
+        json.dump(annotation, output, indent = 4)
+
     return annotation
 
 class InstrumentTracker():
@@ -353,15 +358,4 @@ class InstrumentTracker():
         if not os.path.isdir(outDir):
             os.mkdir(outDir)
 
-        annotation = Process(path)
-        
-        with open("results/out.json", "w") as output:
-            json.dump(annotation, output, indent = 4)
-
-        return annotation
-
-def main():
-    InstrumentTracker().predict("9.mp4")
-
-if __name__ == "__main__":
-    main()
+        return Process(path)
