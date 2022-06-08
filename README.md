@@ -3,12 +3,18 @@
 Semetrální práce z předmětu [ZDO v roce 2022](https://nbviewer.jupyter.org/github/mjirik/ZDO/blob/master/ZDOsem2022.ipynb)
 
 # Spuštění
-
-Skript zdo_sp.py lze spustit příkazem ve tvaru
+Hlavní implementovaný algoritmus lze spustit pomocí dodaného skriptu s automatickým testem jako
 
 ```shell
-python zdo_sp.py <dir> <filter> <interpolate>
+python test_zdo.py
 ```
-kde dir je cesta ve tvaru např. "D:/Data/ZDO/224" která obsahuje adresář "images" a soubor annotations.xml. Parametr filter pak musí nabývat hodnotu 1 nebo 2, kdy pro 1 provádí základní filtraci a pro 2 provádí filtraci s využitím algoritmu k-means. Pro parametr interpolate 1 je interpolace zapnutá, pro parametr 2 je vypnutá.
 
-Skript zdo_sp2.py lze spustit pouze s parametrem dir, více parametrů neočekává.
+přičemž vstupní data jsou očekávána v adresáři tests/test_dataset nebo na cestě dané systémovou proměnnou prostředí ZDO_DATA_PATH. Skript ukládá výstup do složky results do souborů out-<filename>.avi a  out-<filename>.json. Tedy např. out-5.mp4.avi.
+
+Skript zdo_sp2.py lze spustit s parametrem path:
+
+```shell
+python zdo_sp2.py <path>
+```
+  
+který představuje absolutní či relativní cestu k testovanému .mp4 souboru. Skript ukládá výstup do složky results do souborů out2.avi a out2.json.
