@@ -317,10 +317,10 @@ def Process(path):
         videoWriter.write(outimg)
 
         # Append data for each position
-        for i in range(0, (int)(len(positionsK[i][1])/2)):
+        for j in range(0, (int)(len(positionsK[i][1])/2)):
             
-            x = (int)(positionsK[i][1][i*2 + 0])
-            y = (int)(positionsK[i][1][i*2 + 1])
+            x = (int)(positionsK[i][1][j*2 + 0])
+            y = (int)(positionsK[i][1][j*2 + 1])
             
             filename.append(pth.parts[-1])
             frame_id.append(i)
